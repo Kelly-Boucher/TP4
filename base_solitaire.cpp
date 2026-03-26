@@ -36,14 +36,14 @@ using Cases = Case[HAUTEUR][LARGEUR];
 
 struct Position
 {
-    int8_t	ligne;
     int8_t	colonne;
+    int8_t	ligne;
 };
 
 struct Main
 {
     bool		enMain = false;
-    Position	depart = { 0,0 }, arrivee = { 0,0 };
+    Position	depart = { 3, 3 }, arrivee = { 3, 3 };
     Position	prise = { 0,0 };
 };
 
@@ -66,17 +66,24 @@ struct PileSolitaire
     NoeudPileSolitaire* dessus = nullptr;
 };
 
-//Déclaration des fonctions
+//*******************************
+//   DÉCLARATION DES FONCTIONS  *
+//*******************************
+
 Configuration menuAccueil();
-void initialiserPlateau(Configuration conf);
-void afficherPlateau(Cases plateau);
+void initialiserPlateau(Cases plateau, Configuration conf);
+void afficherPlateau(Cases plateau, Main m);
 Action saisirAction();
-void afficherMain(Main m);
-void reafficherCase(Main m, Cases p);
-void miseAJour(Action act, Cases plateau, Main m);
+void afficherMain(Main& m);
+void reafficherCase(Main& m, Cases p);
+void miseAJour(Action act, Cases plateau, Main& m);
 bool positionValide(Position p, Cases plateau);
-void manipulerBille(Cases plateau, Main m);
+void manipulerBille(Cases plateau, Main& m);
 void quitter();
+
+//*******************************
+//      LA FONCTION MAIN        *
+//*******************************
 
 int main()
 {
@@ -85,29 +92,31 @@ Main m;
 Action act = Action::INCONNU;
 Configuration config;
 
+config = menuAccueil();     //Mettre la configuration choisir par l'utilisateur au menu accueil dans un objet "Configuration"
+
+initialiserPlateau(plateau, config);     //Initialiser le plateau en fonction de la configuration choisie
+
+afficherPlateau(plateau, m);               //Afficher le plateau à la console
+
+afficherMain(m);                        //Afficher la main au bon endroit
+
 while (act != Action::QUITTER)
 {
-    config = menuAccueil();
-    
-    initialiserPlateau(config);
+    act = saisirAction();                   //Saisir l'action que veut faire le joueur
 
-    act = saisirAction();
-
-    switch (act)
-    {
-        case Action::HAUT:       break;
-    }
-
-    miseAJour(act, plateau, m);
+    miseAJour(act, plateau, m);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur (implémenter manipuler et quitter plus tard)
 }
 
 return 0;
 
 }
 
+//*******************************
+//    LES FONCTIONS DÉFINIES    *
+//*******************************
+
 Configuration menuAccueil()
 {
-
         cout << "Faire le numero du mode que vous voulez." << endl;
         cout << "1 - Anglais" << endl;
         cout << "2 - Europeen" << endl;
@@ -132,50 +141,70 @@ Configuration menuAccueil()
         return config;
 }
 
-void initialiserPlateau(Configuration conf)
+void initialiserPlateau(Cases plateau, Configuration conf)
 {   
     if (conf == Configuration::ANGLAIS)
     {
-        Cases plateau[HAUTEUR][LARGEUR] =
+        for (size_t lig = 0; lig < HAUTEUR; ++lig)
         {
-            {NO_DISPO, NO_DISPO, BILLE, BILLE, BILLE, NO_DISPO, NO_DISPO},
-            {NO_DISPO, NO_DISPO, BILLE, BILLE, BILLE, NO_DISPO, NO_DISPO},
-            {BILLE, BILLE, BILLE, BILLE, BILLE, BILLE, BILLE},
-            {BILLE, BILLE, BILLE, BILLE, BILLE, BILLE, BILLE},
-            {BILLE, BILLE, BILLE, BILLE, BILLE, BILLE, BILLE},
-            {NO_DISPO, NO_DISPO,BILLE, BILLE, BILLE, NO_DISPO, NO_DISPO},
-            {NO_DISPO, NO_DISPO,BILLE, BILLE, BILLE, NO_DISPO, NO_DISPO},
-        };
+            for (size_t col = 0; col < LARGEUR; ++col)
+            {
+                if ((lig == 0 || lig == 1 || lig == 5 || lig == 6) && (col == 0 || col == 1 || col == 5 || col == 6))
+                {
+                    plateau[lig][col] = NO_DISPO;
+                }
+                else
+                {
+                    plateau[lig][col] = BILLE;
+                }
+            }
+        }
     }
     if (conf == Configuration::EUROPEEN)
     {
-        Cases plateau[HAUTEUR][LARGEUR] =
+        for (size_t lig = 0; lig < HAUTEUR; ++lig)
         {
-            {NO_DISPO, NO_DISPO, BILLE, BILLE, BILLE, NO_DISPO, NO_DISPO},
-            {NO_DISPO, BILLE, BILLE, BILLE, BILLE, BILLE, NO_DISPO},
-            {BILLE, BILLE, BILLE, BILLE, BILLE, BILLE, BILLE},
-            {BILLE, BILLE, BILLE, BILLE, BILLE, BILLE, BILLE},
-            {BILLE, BILLE, BILLE, BILLE, BILLE, BILLE, BILLE},
-            {NO_DISPO, BILLE,BILLE, BILLE, BILLE, BILLE, NO_DISPO},
-            {NO_DISPO, NO_DISPO,BILLE, BILLE, BILLE, NO_DISPO, NO_DISPO},
-        };
+            for (size_t col = 0; col < LARGEUR; ++col)
+            {
+                if ((lig == 0 || lig == 6) && (col == 0 || col == 1 || col == 5 || col == 6))
+                {
+                    plateau[lig][col] = NO_DISPO;
+                }
+                else if ((lig == 1 || lig == 5) && (col == 0 || col == 6))
+                {
+                    plateau[lig][col] = NO_DISPO;
+                }
+                else
+                {
+                    plateau[lig][col] = BILLE;
+                }
+            }
+        }
     }
     if (conf == Configuration::PRATIQUE)
     {
-        Cases plateau[HAUTEUR][LARGEUR] =
+        for (size_t lig = 0; lig < HAUTEUR; ++lig)
         {
-            {NO_DISPO, NO_DISPO, VIDE, BILLE, VIDE, NO_DISPO, NO_DISPO},
-            {NO_DISPO, NO_DISPO, VIDE, BILLE, VIDE, NO_DISPO, NO_DISPO},
-            {VIDE, VIDE, VIDE, BILLE, VIDE, VIDE, VIDE},
-            {BILLE, BILLE, BILLE, BILLE, BILLE, BILLE, BILLE},
-            {VIDE, VIDE, VIDE, BILLE, VIDE, VIDE, VIDE},
-            {NO_DISPO, NO_DISPO, VIDE, BILLE, VIDE, NO_DISPO, NO_DISPO},
-            {NO_DISPO, NO_DISPO, VIDE, BILLE, VIDE, NO_DISPO, NO_DISPO},
-        };
+            for (size_t col = 0; col < LARGEUR; ++col)
+            {
+                if ((lig == 0 || lig == 1 || lig == 5 || lig == 6) && (col == 0 || col == 1 || col == 5 || col == 6))
+                {
+                    plateau[lig][col] = NO_DISPO;
+                }
+                else if (lig == 3 || col == 3)
+                {
+                    plateau[lig][col] = BILLE;
+                }
+                else
+                {
+                    plateau[lig][col] = VIDE;
+                }
+            }
+        }
     }
 }
 
-void afficherPlateau(Cases plateau)
+void afficherPlateau(Cases plateau, Main m)
 {
     for(size_t lig = 0; lig < HAUTEUR; ++lig)
     {
@@ -185,8 +214,36 @@ void afficherPlateau(Cases plateau)
         }
         cout << endl;
     }
-}
 
+    gotoxy(0, LIGNE_CONTROLES);
+    cout << "Gauche: a | Haut: w | Droite: d | Bas: s | Reinitialiser: r | Quitter: q | Annuler: u | Refaire: y";
+
+    gotoxy(0, LIGNE_MESSAGE);
+    cout << "Voulez-vous choisir le trou de depart (O/N) ?";
+    char c;
+    bool choixValide = false;
+    bool choisirTrou;
+    do
+    {
+        c = _getch();
+        switch (c)
+        {
+        case 'o': choisirTrou = true; choixValide = true; gotoxy(0, LIGNE_MESSAGE); cout << "Deplacez-vous et selectionnez la bille a retirer";     break;
+        case 'n': choisirTrou = false; choixValide = true;       break;
+        }
+    } while (choixValide = false);
+
+    if (choisirTrou == true)
+    {
+    Action act = Action::INCONNU;
+
+    while (act != Action::QUITTER)
+    {
+        act = saisirAction(); 
+        miseAJour(act, plateau, m);      
+    }
+    }
+}
 
 Action saisirAction()
 {
@@ -211,7 +268,7 @@ Action saisirAction()
     return act;
 }
 
-void afficherMain(Main m)
+void afficherMain(Main& m)                                   
 {
     gotoxy(m.arrivee.colonne, m.arrivee.ligne);
     if(m.enMain)
@@ -227,53 +284,64 @@ void afficherMain(Main m)
     setcolor(Color::wht);
 }
 
-void reafficherCase(Main m, Cases plateau)
+void reafficherCase(Main& m, Cases plateau)
 {
     gotoxy(m.depart.colonne, m.depart.ligne);
-    Case c = plateau[m.depart.ligne][m.depart.colonne];
+    Case c = plateau[m.depart.colonne][m.depart.ligne];
     cout << carte[c];   
 }
 
-void miseAJour(Action act, Cases plateau, Main m)
+void miseAJour(Action act, Cases plateau, Main& m)           //Mettre à jour la position de la main à la console selon l'action effectué par leu joueur
 {
     switch(act)
     {
-        case Action::HAUT: m.arrivee.ligne--; break;
-        case Action::BAS: m.arrivee.ligne++; break;
-        case Action::DROITE: m.arrivee.colonne++; break;
-        case Action::GAUCHE: m.arrivee.colonne--; break;
-        case Action::MANIPULER: manipulerBille(plateau, m); break;
-        case Action::QUITTER: quitter(); break;
+        case Action::HAUT:      m.arrivee.ligne--;              break;
+        case Action::BAS:       m.arrivee.ligne++;              break;
+        case Action::DROITE:    m.arrivee.colonne++;            break;
+        case Action::GAUCHE:    m.arrivee.colonne--;            break;
+        case Action::MANIPULER: manipulerBille(plateau, m);     break;
+        case Action::QUITTER:   quitter();                      break;
     }
-    if(positionValide(m.arrivee, plateau))
+    if(positionValide(m.arrivee, plateau))        //Si le déplacement est valide, on fait un cout de la main à la position d'arrivée et on réaffiche le plateau au complet la position de départ devient celle d'arrivée
     {
-        afficherMain(m);
         reafficherCase(m, plateau);
+        afficherMain(m);
         m.depart = m.arrivee;
     }
     else
     {
-        m.arrivee = m.depart;
+        m.arrivee = m.depart;           //Si l'action n'est pas vailde, on remet la position d'arrivée comme celle de départ
     }
 }
 
 bool positionValide(Position p, Cases plateau)
 {
-    // D'autre(s) condition(s) à ajouter...
-    if (p.ligne > HAUTEUR || p.colonne > LARGEUR || p.ligne < 0 || p.colonne < 0) 
+    if (p.colonne > LARGEUR - 1 || p.ligne > HAUTEUR - 1 || p.ligne < 0 || p.colonne < 0)
+    {
+        return false;
+    }
+    if (plateau[p.ligne][p.colonne] == NO_DISPO)
     {
         return false;
     }
     return true;
-
 }
 
-void manipulerBille(Cases plateau, Main m)
+void manipulerBille(Cases plateau, Main& m)
 {
-
+    if (m.enMain)
+    {
+        m.enMain = false;
+    }
+    else
+    {
+        m.enMain = true;
+    }
 }
 
 void quitter()
 {
-
+    clrscr();
+    cout << "Au revoir!";
+    _getch();
 }
