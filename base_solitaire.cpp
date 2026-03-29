@@ -1,6 +1,7 @@
 #include <iostream>
 #include <conio.h>
 #include <windows.h>
+#include <cmath>
 
 #include "cvm_23.h"
 
@@ -42,9 +43,10 @@ struct Position
 
 struct Main
 {
+    bool        mettreTrouDepart = false;
     bool		enMain = false;
     Position	depart = { 3, 3 }, arrivee = { 3, 3 };
-    Position	prise = { 0,0 };
+    Position	prise = { 0, 0 };
 };
 
 struct InfoPileSolitaire
@@ -72,13 +74,18 @@ struct PileSolitaire
 
 Configuration menuAccueil();
 void initialiserPlateau(Cases plateau, Configuration conf);
-void afficherPlateau(Cases plateau, Main m);
+bool afficherPlateau(Cases plateau, Main m);
 Action saisirAction();
 void afficherMain(Main& m);
+void mettreTrouDepart(Action act, Cases plateau, Main& m, bool& quitte);
 void reafficherCase(Main& m, Cases p);
-void miseAJour(Action act, Cases plateau, Main& m);
+void miseAJour(Action act, Cases plateau, Main& m, bool& quitte);
 bool positionValide(Position p, Cases plateau);
 void manipulerBille(Cases plateau, Main& m);
+void prendreBille(Cases plateau, Main& m);
+void deposerBille(Cases plateau, Main& m);
+void redemarrer();
+void confirmerChoix(bool& quitte);
 void quitter();
 
 //*******************************
@@ -87,25 +94,52 @@ void quitter();
 
 int main()
 {
+bool redemarre = false;
+
+do {
+
 Cases plateau;
 Main m;
 Action act = Action::INCONNU;
 Configuration config;
+bool choisirTrouDepart;
+bool quitte = false;
+
+show(false);
 
 config = menuAccueil();     //Mettre la configuration choisir par l'utilisateur au menu accueil dans un objet "Configuration"
 
 initialiserPlateau(plateau, config);     //Initialiser le plateau en fonction de la configuration choisie
 
-afficherPlateau(plateau, m);               //Afficher le plateau à la console
+choisirTrouDepart = afficherPlateau(plateau, m);               //Afficher le plateau à la console
 
 afficherMain(m);                        //Afficher la main au bon endroit
 
-while (act != Action::QUITTER)
+if (choisirTrouDepart)
+{
+    gotoxy(0, LIGNE_MESSAGE);
+    clreol();
+    cout << "Deplacez-vous et choisissez la bille a retirer";
+    m.mettreTrouDepart = true;
+    mettreTrouDepart(act, plateau, m, quitte);
+}
+else
+{
+    plateau[3][3] = VIDE;
+    //cout << carte[plateau[3][3]];
+}
+
+do 
 {
     act = saisirAction();                   //Saisir l'action que veut faire le joueur
 
-    miseAJour(act, plateau, m);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur (implémenter manipuler et quitter plus tard)
-}
+    miseAJour(act, plateau, m, quitte);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur (implémenter manipuler et quitter plus tard)
+} while (!quitte);
+
+} while (!redemarre);
+
+quitter();
+
 
 return 0;
 
@@ -204,11 +238,11 @@ void initialiserPlateau(Cases plateau, Configuration conf)
     }
 }
 
-void afficherPlateau(Cases plateau, Main m)
+bool afficherPlateau(Cases plateau, Main m)
 {
-    for(size_t lig = 0; lig < HAUTEUR; ++lig)
+    for (size_t lig = 0; lig < HAUTEUR; ++lig)
     {
-        for(size_t col = 0; col < LARGEUR; ++col)
+        for (size_t col = 0; col < LARGEUR; ++col)
         {
             cout << carte[plateau[lig][col]];
         }
@@ -221,27 +255,30 @@ void afficherPlateau(Cases plateau, Main m)
     gotoxy(0, LIGNE_MESSAGE);
     cout << "Voulez-vous choisir le trou de depart (O/N) ?";
     char c;
+    bool choisirTrou = false;
     bool choixValide = false;
-    bool choisirTrou;
-    do
-    {
+
+    do {
         c = _getch();
-        switch (c)
+
+        switch(c)
         {
-        case 'o': choisirTrou = true; choixValide = true; gotoxy(0, LIGNE_MESSAGE); cout << "Deplacez-vous et selectionnez la bille a retirer";     break;
-        case 'n': choisirTrou = false; choixValide = true;       break;
+        case 'o': choisirTrou = true; choixValide = true;   break;
+        case 'n': choisirTrou = false; choixValide = true;  break;
         }
-    } while (choixValide = false);
 
-    if (choisirTrou == true)
-    {
-    Action act = Action::INCONNU;
+    } while (choixValide == false);
 
-    while (act != Action::QUITTER)
+    return choisirTrou;
+}
+
+void mettreTrouDepart(Action act, Cases plateau, Main& m, bool& quitte)
+{
+    while (act != Action::QUITTER && m.mettreTrouDepart)
     {
-        act = saisirAction(); 
-        miseAJour(act, plateau, m);      
-    }
+        act = saisirAction();                   //Saisir l'action que veut faire le joueur
+
+        miseAJour(act, plateau, m, quitte);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur (implémenter manipuler et quitter plus tard)
     }
 }
 
@@ -270,7 +307,7 @@ Action saisirAction()
 
 void afficherMain(Main& m)                                   
 {
-    gotoxy(m.arrivee.colonne, m.arrivee.ligne);
+    gotoxy(m.arrivee.ligne, m.arrivee.colonne);
     if(m.enMain)
     {
         setcolor(Color::red);
@@ -286,23 +323,23 @@ void afficherMain(Main& m)
 
 void reafficherCase(Main& m, Cases plateau)
 {
-    gotoxy(m.depart.colonne, m.depart.ligne);
-    Case c = plateau[m.depart.colonne][m.depart.ligne];
+    gotoxy(m.depart.ligne, m.depart.colonne);
+    Case c = plateau[m.depart.ligne][m.depart.colonne];
     cout << carte[c];   
 }
 
-void miseAJour(Action act, Cases plateau, Main& m)           //Mettre à jour la position de la main à la console selon l'action effectué par leu joueur
+void miseAJour(Action act, Cases plateau, Main& m, bool& quitte)           //Mettre à jour la position de la main à la console selon l'action effectué par leu joueur
 {
     switch(act)
     {
-        case Action::HAUT:      m.arrivee.ligne--;              break;
-        case Action::BAS:       m.arrivee.ligne++;              break;
-        case Action::DROITE:    m.arrivee.colonne++;            break;
-        case Action::GAUCHE:    m.arrivee.colonne--;            break;
+        case Action::HAUT:      m.arrivee.colonne--;            break;
+        case Action::BAS:       m.arrivee.colonne++;            break;
+        case Action::DROITE:    m.arrivee.ligne++;              break;
+        case Action::GAUCHE:    m.arrivee.ligne--;              break;
         case Action::MANIPULER: manipulerBille(plateau, m);     break;
-        case Action::QUITTER:   quitter();                      break;
+        case Action::QUITTER:   confirmerChoix(quitte);               break;
     }
-    if(positionValide(m.arrivee, plateau))        //Si le déplacement est valide, on fait un cout de la main à la position d'arrivée et on réaffiche le plateau au complet la position de départ devient celle d'arrivée
+    if(positionValide(m.arrivee, plateau))        //Si le déplacement est valide, on fait un cout de la main à la position d'arrivée et on réaffiche la case sur laquelle la position de départ devient celle d'arrivée
     {
         reafficherCase(m, plateau);
         afficherMain(m);
@@ -316,11 +353,11 @@ void miseAJour(Action act, Cases plateau, Main& m)           //Mettre à jour la
 
 bool positionValide(Position p, Cases plateau)
 {
-    if (p.colonne > LARGEUR - 1 || p.ligne > HAUTEUR - 1 || p.ligne < 0 || p.colonne < 0)
+    if (p.colonne > LARGEUR - 1 || p.ligne > HAUTEUR - 1 || p.ligne < 0 || p.colonne < 0)   //Ne pas sortir du plateau 7x7
     {
         return false;
     }
-    if (plateau[p.ligne][p.colonne] == NO_DISPO)
+    if (plateau[p.ligne][p.colonne] == NO_DISPO)        //Ne pas aller sur une case NO_DISPO
     {
         return false;
     }
@@ -329,14 +366,103 @@ bool positionValide(Position p, Cases plateau)
 
 void manipulerBille(Cases plateau, Main& m)
 {
-    if (m.enMain)
+    if (m.mettreTrouDepart)
     {
-        m.enMain = false;
+        plateau[m.arrivee.ligne][m.arrivee.colonne] = VIDE;
+        m.mettreTrouDepart = false;
     }
     else
     {
-        m.enMain = true;
+        if (m.enMain)
+        {
+        m.enMain = false;               //On vient déposer la bille
+        deposerBille(plateau, m);
+        }
+        else
+        {
+            if (plateau[m.arrivee.ligne][m.arrivee.colonne] == BILLE)
+            {
+            m.enMain = true;                //On vient de prendre une bille -> petit x rouge
+            prendreBille(plateau, m);
+            }
+        }
     }
+}
+
+void prendreBille(Cases plateau, Main& m)
+{
+    m.prise = m.arrivee;        //Prendre en note la position de départ (la bille qui a été prise)
+    plateau[m.prise.ligne][m.prise.colonne] = VIDE;
+}
+
+void deposerBille(Cases plateau, Main& m)
+{
+    if(plateau[m.arrivee.ligne][m.arrivee.colonne] == VIDE && ((abs(m.prise.ligne - m.arrivee.ligne) == 2 && abs(m.prise.colonne - m.arrivee.colonne) == 0) || abs(m.prise.colonne - m.arrivee.colonne) == 2 && abs(m.prise.ligne - m.arrivee.ligne) == 0))
+    {
+        Position intermediaire;
+
+        //Calculer la position de la bille intermédiaire
+        if (m.arrivee.ligne == m.prise.ligne)                                    //Si la ligne a la même valeur, alors le déplacement a été effectué sur une colonne et vice-versa
+        {
+            if (m.arrivee.colonne > m.prise.colonne)
+            {
+                intermediaire.colonne = m.arrivee.colonne - 1;
+            }
+            else
+            {
+                intermediaire.colonne = m.prise.colonne - 1;
+            }
+            intermediaire.ligne = m.arrivee.ligne;
+        }
+        if (m.arrivee.colonne == m.prise.colonne)
+        {
+            if (m.arrivee.ligne > m.prise.ligne)
+            {
+                intermediaire.ligne = m.arrivee.ligne - 1;
+            }
+            else
+            {
+                intermediaire.ligne = m.prise.ligne - 1;
+            }
+            intermediaire.colonne = m.arrivee.colonne;
+        }
+
+        plateau[m.arrivee.ligne][m.arrivee.colonne] = BILLE;
+        plateau[intermediaire.ligne][intermediaire.colonne] = VIDE;
+
+    //Pour afficher tout de suite une case vide à l'endroit de la bille intermédiaire, sinon il faut attendre que le X passe par-dessus vu qu'on ne réaffiche pas le plateau au complet a chaque mouvement
+    gotoxy(intermediaire.ligne, intermediaire.colonne);                             
+    Case Intermed = plateau[intermediaire.ligne][intermediaire.colonne];
+    cout << carte[Intermed];
+    }
+    else {
+        plateau[m.prise.ligne][m.prise.colonne] = BILLE;            //Si le joueur dépose la bille a un endroit non valide, on remet la bille prise au départ à sa place et enMain redevient faux
+        m.enMain = false;
+        gotoxy(m.prise.ligne, m.prise.colonne);
+        Case caseVide = plateau[m.prise.ligne][m.prise.colonne];
+        cout << carte[caseVide];
+    }
+}
+
+void confirmerChoix(bool& quitte)
+{
+    char c;
+    bool choixValide = false;
+    gotoxy(0, LIGNE_MESSAGE);
+    clreol();
+    cout << "Etes-vous sur de vouloir quitter? (O/N)";
+
+    do
+    {
+        c = _getch();
+        switch (c)
+        {
+        case 'o': quitte = true;    choixValide = true; break;
+        case 'n': quitte = false;   choixValide = true; break;
+        }
+    } while (!choixValide);
+    gotoxy(0, LIGNE_MESSAGE);
+    clreol();
 }
 
 void quitter()
