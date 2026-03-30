@@ -72,20 +72,23 @@ struct PileSolitaire
 //   DÉCLARATION DES FONCTIONS  *
 //*******************************
 
+void demarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act);
 Configuration menuAccueil();
 void initialiserPlateau(Cases plateau, Configuration conf);
 bool afficherPlateau(Cases plateau, Main m);
 Action saisirAction();
 void afficherMain(Main& m);
-void mettreTrouDepart(Action act, Cases plateau, Main& m, bool& quitte);
+void mettreTrouDepart(Action act, Cases& plateau, Main& m, bool& choisirTrouDepart);
 void reafficherCase(Main& m, Cases p);
-void miseAJour(Action act, Cases plateau, Main& m, bool& quitte);
+void miseAJour(Action& act, Cases& plateau, Main& m, bool& choisirTrouDepart);
 bool positionValide(Position p, Cases plateau);
 void manipulerBille(Cases plateau, Main& m);
 void prendreBille(Cases plateau, Main& m);
 void deposerBille(Cases plateau, Main& m);
-void redemarrer();
-void confirmerChoix(bool& quitte);
+void annuler();
+void refaire();
+void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act);
+void confirmerChoix(Action& act);
 void quitter();
 
 //*******************************
@@ -94,52 +97,24 @@ void quitter();
 
 int main()
 {
-bool redemarre = false;
-
-do {
-
 Cases plateau;
 Main m;
 Action act = Action::INCONNU;
-Configuration config;
 bool choisirTrouDepart;
-bool quitte = false;
+PileSolitaire pile;
 
 show(false);
 
-config = menuAccueil();     //Mettre la configuration choisir par l'utilisateur au menu accueil dans un objet "Configuration"
+demarrer(plateau, choisirTrouDepart, m, act);
 
-initialiserPlateau(plateau, config);     //Initialiser le plateau en fonction de la configuration choisie
-
-choisirTrouDepart = afficherPlateau(plateau, m);               //Afficher le plateau à la console
-
-afficherMain(m);                        //Afficher la main au bon endroit
-
-if (choisirTrouDepart)
-{
-    gotoxy(0, LIGNE_MESSAGE);
-    clreol();
-    cout << "Deplacez-vous et choisissez la bille a retirer";
-    m.mettreTrouDepart = true;
-    mettreTrouDepart(act, plateau, m, quitte);
-}
-else
-{
-    plateau[3][3] = VIDE;
-    //cout << carte[plateau[3][3]];
-}
-
-do 
+while (act != Action::QUITTER)
 {
     act = saisirAction();                   //Saisir l'action que veut faire le joueur
 
-    miseAJour(act, plateau, m, quitte);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur (implémenter manipuler et quitter plus tard)
-} while (!quitte);
-
-} while (!redemarre);
+    miseAJour(act, plateau, m, choisirTrouDepart);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur
+}
 
 quitter();
-
 
 return 0;
 
@@ -148,6 +123,29 @@ return 0;
 //*******************************
 //    LES FONCTIONS DÉFINIES    *
 //*******************************
+
+void demarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act) {
+
+    //La fonction menuAccueil retourne une Configuration utilisé comme paramètre dans par la fonction initialiserPlateau
+    initialiserPlateau(plateau, menuAccueil());     
+
+    choisirTrouDepart = afficherPlateau(plateau, m);               //Afficher le plateau à la console
+
+    afficherMain(m);                        //Afficher la main au bon endroit
+
+    if (choisirTrouDepart)
+    {
+        gotoxy(0, LIGNE_MESSAGE);
+        clreol();
+        cout << "Deplacez-vous et choisissez la bille a retirer";
+        m.mettreTrouDepart = true;
+        mettreTrouDepart(act, plateau, m, choisirTrouDepart);
+    }
+    else
+    {
+        plateau[3][3] = VIDE;
+    }
+}
 
 Configuration menuAccueil()
 {
@@ -272,13 +270,13 @@ bool afficherPlateau(Cases plateau, Main m)
     return choisirTrou;
 }
 
-void mettreTrouDepart(Action act, Cases plateau, Main& m, bool& quitte)
+void mettreTrouDepart(Action act, Cases& plateau, Main& m, bool& choisirTrouDepart)
 {
     while (act != Action::QUITTER && m.mettreTrouDepart)
     {
         act = saisirAction();                   //Saisir l'action que veut faire le joueur
 
-        miseAJour(act, plateau, m, quitte);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur (implémenter manipuler et quitter plus tard)
+        miseAJour(act, plateau, m, choisirTrouDepart);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur
     }
 }
 
@@ -292,12 +290,15 @@ Action saisirAction()
         c = _getch();
         switch(c)
         {
-            case 'w': act = Action::HAUT;       break;
-            case 's': act = Action::BAS;        break;
-            case 'a': act = Action::GAUCHE;     break;
-            case 'd': act = Action::DROITE;     break;
-            case ' ': act = Action::MANIPULER;  break;
-            case 'q': act = Action::QUITTER;    break;
+            case 'w': act = Action::HAUT;           break;
+            case 's': act = Action::BAS;            break;
+            case 'a': act = Action::GAUCHE;         break;
+            case 'd': act = Action::DROITE;         break;
+            case ' ': act = Action::MANIPULER;      break;
+            case 'q': act = Action::QUITTER;        break;
+            case 'r': act = Action::REINITIALISER;  break;
+            case 'u': act = Action::ANNULER;        break;
+            case 'y': act = Action::REFAIRE;        break;
             default : act = Action::INCONNU;
         }
     } while(act == Action::INCONNU);
@@ -328,16 +329,19 @@ void reafficherCase(Main& m, Cases plateau)
     cout << carte[c];   
 }
 
-void miseAJour(Action act, Cases plateau, Main& m, bool& quitte)           //Mettre à jour la position de la main à la console selon l'action effectué par leu joueur
+void miseAJour(Action& act, Cases& plateau, Main& m, bool& choisirTrouDepart)           //Mettre à jour la position de la main à la console selon l'action effectué par leu joueur
 {
     switch(act)
     {
-        case Action::HAUT:      m.arrivee.colonne--;            break;
-        case Action::BAS:       m.arrivee.colonne++;            break;
-        case Action::DROITE:    m.arrivee.ligne++;              break;
-        case Action::GAUCHE:    m.arrivee.ligne--;              break;
-        case Action::MANIPULER: manipulerBille(plateau, m);     break;
-        case Action::QUITTER:   confirmerChoix(quitte);               break;
+        case Action::HAUT:          m.arrivee.colonne--;                                                    break;
+        case Action::BAS:           m.arrivee.colonne++;                                                    break;
+        case Action::DROITE:        m.arrivee.ligne++;                                                      break;
+        case Action::GAUCHE:        m.arrivee.ligne--;                                                      break;
+        case Action::MANIPULER:     manipulerBille(plateau, m);                                             break;
+        case Action::QUITTER:       confirmerChoix(act);                                                 break;
+        case Action::REINITIALISER: redemarrer(plateau, choisirTrouDepart, m, act);                 break;
+        case Action::ANNULER:       annuler();                                                              break;
+        case Action::REFAIRE:       refaire();                                                              break;
     }
     if(positionValide(m.arrivee, plateau))        //Si le déplacement est valide, on fait un cout de la main à la position d'arrivée et on réaffiche la case sur laquelle la position de départ devient celle d'arrivée
     {
@@ -402,7 +406,7 @@ void deposerBille(Cases plateau, Main& m)
         Position intermediaire;
 
         //Calculer la position de la bille intermédiaire
-        if (m.arrivee.ligne == m.prise.ligne)                                    //Si la ligne a la même valeur, alors le déplacement a été effectué sur une colonne et vice-versa
+        if (m.arrivee.ligne == m.prise.ligne)                                    //Si les lignes ont la même valeur, alors le déplacement a été effectué sur une colonne et vice-versa
         {
             if (m.arrivee.colonne > m.prise.colonne)
             {
@@ -427,6 +431,10 @@ void deposerBille(Cases plateau, Main& m)
             intermediaire.colonne = m.arrivee.colonne;
         }
 
+        //Puisque le coup va s'effectuer, on prend en note la position de départ, d'arrivée, et celle de la bille intermédiaire
+
+        
+
         plateau[m.arrivee.ligne][m.arrivee.colonne] = BILLE;
         plateau[intermediaire.ligne][intermediaire.colonne] = VIDE;
 
@@ -444,13 +452,53 @@ void deposerBille(Cases plateau, Main& m)
     }
 }
 
-void confirmerChoix(bool& quitte)
+void annuler()
+{
+
+}
+void refaire()
+{
+
+}
+
+void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act)
 {
     char c;
     bool choixValide = false;
+    bool redemarrer;
     gotoxy(0, LIGNE_MESSAGE);
     clreol();
-    cout << "Etes-vous sur de vouloir quitter? (O/N)";
+    cout << "Voulez-vous vraiment redemarrer ? (O/N)";
+    do
+    {
+        c = _getch();
+        switch (c)
+        {
+        case 'o': redemarrer = true;    choixValide = true; break;
+        case 'n': redemarrer = false;   choixValide = true; break;
+        }
+    } while (!choixValide);
+
+    if (redemarrer)
+    {
+    clrscr();
+    demarrer(plateau, choisirTrouDepart, m, act);
+    }
+    else
+    {
+        gotoxy(0, LIGNE_MESSAGE);
+        clreol();
+    }
+}
+
+void confirmerChoix(Action& act)
+{
+    char c;
+    bool choixValide = false;
+    bool quitte;
+    gotoxy(0, LIGNE_MESSAGE);
+    clreol();
+    cout << "Etes-vous sur de vouloir quitter ? (O/N)";
 
     do
     {
@@ -463,6 +511,10 @@ void confirmerChoix(bool& quitte)
     } while (!choixValide);
     gotoxy(0, LIGNE_MESSAGE);
     clreol();
+    if (!quitte)
+    {
+        act = Action::INCONNU;
+    }
 }
 
 void quitter()
