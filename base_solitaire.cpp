@@ -12,8 +12,8 @@ const char carte[3]{ 'O', ' ', '\xdb' };
 const size_t LARGEUR = 7;
 const size_t HAUTEUR = 7;
 const size_t LIGNE_CONTROLES = HAUTEUR + 2;
-const size_t LIGNE_ANNULER = LIGNE_CONTROLES + 1;
-const size_t LIGNE_MESSAGE = LIGNE_ANNULER + 1;
+const size_t LIGNE_ANNULER = LIGNE_CONTROLES + 2;
+const size_t LIGNE_MESSAGE = LIGNE_ANNULER + 2;
 
 enum Case { BILLE, VIDE, NO_DISPO };
 
@@ -72,22 +72,22 @@ struct PileSolitaire
 //   DÉCLARATION DES FONCTIONS  *
 //*******************************
 
-void demarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act);
+void demarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure);
 Configuration menuAccueil();
 void initialiserPlateau(Cases plateau, Configuration conf);
 bool afficherPlateau(Cases plateau, Main m);
 Action saisirAction();
 void afficherMain(Main& m);
-void mettreTrouDepart(Action act, Cases& plateau, Main& m, bool& choisirTrouDepart);
+void mettreTrouDepart(Action act, Cases& plateau, Main& m, bool& choisirTrouDepart, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure);
 void reafficherCase(Main& m, Cases p);
-void miseAJour(Action& act, Cases& plateau, Main& m, bool& choisirTrouDepart);
+void miseAJour(Action& act, Cases& plateau, Main& m, bool& choisirTrouDepart, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure);
 bool positionValide(Position p, Cases plateau);
-void manipulerBille(Cases plateau, Main& m);
+void manipulerBille(Cases plateau, Main& m, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure);
 void prendreBille(Cases plateau, Main& m);
-void deposerBille(Cases plateau, Main& m);
-void annuler();
+void deposerBille(Cases plateau, Main& m, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure);
+void annuler(Cases& plateau, Main& m, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure);
 void refaire();
-void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act);
+void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure);
 void confirmerChoix(Action& act);
 void quitter();
 
@@ -101,17 +101,19 @@ Cases plateau;
 Main m;
 Action act = Action::INCONNU;
 bool choisirTrouDepart;
-PileSolitaire pile;
+PileSolitaire pileAnnuler;
+PileSolitaire pileRefaire;
+InfoPileSolitaire positionAnterieure;
 
 show(false);
 
-demarrer(plateau, choisirTrouDepart, m, act);
+demarrer(plateau, choisirTrouDepart, m, act, pileAnnuler, positionAnterieure);
 
 while (act != Action::QUITTER)
 {
     act = saisirAction();                   //Saisir l'action que veut faire le joueur
 
-    miseAJour(act, plateau, m, choisirTrouDepart);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur
+    miseAJour(act, plateau, m, choisirTrouDepart, pileAnnuler, positionAnterieure);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur
 }
 
 quitter();
@@ -124,7 +126,7 @@ return 0;
 //    LES FONCTIONS DÉFINIES    *
 //*******************************
 
-void demarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act) {
+void demarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure) {
 
     //La fonction menuAccueil retourne une Configuration utilisé comme paramètre dans par la fonction initialiserPlateau
     initialiserPlateau(plateau, menuAccueil());     
@@ -139,7 +141,7 @@ void demarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act) {
         clreol();
         cout << "Deplacez-vous et choisissez la bille a retirer";
         m.mettreTrouDepart = true;
-        mettreTrouDepart(act, plateau, m, choisirTrouDepart);
+        mettreTrouDepart(act, plateau, m, choisirTrouDepart, pileAnnuler, positionAnterieure);
     }
     else
     {
@@ -267,16 +269,19 @@ bool afficherPlateau(Cases plateau, Main m)
 
     } while (choixValide == false);
 
+    gotoxy(0, LIGNE_MESSAGE);
+    clreol();
+
     return choisirTrou;
 }
 
-void mettreTrouDepart(Action act, Cases& plateau, Main& m, bool& choisirTrouDepart)
+void mettreTrouDepart(Action act, Cases& plateau, Main& m, bool& choisirTrouDepart, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure)
 {
     while (act != Action::QUITTER && m.mettreTrouDepart)
     {
         act = saisirAction();                   //Saisir l'action que veut faire le joueur
 
-        miseAJour(act, plateau, m, choisirTrouDepart);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur
+        miseAJour(act, plateau, m, choisirTrouDepart, pileAnnuler, positionAnterieure);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur
     }
 }
 
@@ -329,19 +334,19 @@ void reafficherCase(Main& m, Cases plateau)
     cout << carte[c];   
 }
 
-void miseAJour(Action& act, Cases& plateau, Main& m, bool& choisirTrouDepart)           //Mettre à jour la position de la main à la console selon l'action effectué par leu joueur
+void miseAJour(Action& act, Cases& plateau, Main& m, bool& choisirTrouDepart, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure)           //Mettre à jour la position de la main à la console selon l'action effectué par leu joueur
 {
     switch(act)
     {
-        case Action::HAUT:          m.arrivee.colonne--;                                                    break;
-        case Action::BAS:           m.arrivee.colonne++;                                                    break;
-        case Action::DROITE:        m.arrivee.ligne++;                                                      break;
-        case Action::GAUCHE:        m.arrivee.ligne--;                                                      break;
-        case Action::MANIPULER:     manipulerBille(plateau, m);                                             break;
-        case Action::QUITTER:       confirmerChoix(act);                                                 break;
-        case Action::REINITIALISER: redemarrer(plateau, choisirTrouDepart, m, act);                 break;
-        case Action::ANNULER:       annuler();                                                              break;
-        case Action::REFAIRE:       refaire();                                                              break;
+        case Action::HAUT:          m.arrivee.colonne--;                                                                break;
+        case Action::BAS:           m.arrivee.colonne++;                                                                break;
+        case Action::DROITE:        m.arrivee.ligne++;                                                                  break;
+        case Action::GAUCHE:        m.arrivee.ligne--;                                                                  break;
+        case Action::MANIPULER:     manipulerBille(plateau, m, pileAnnuler, positionAnterieure);                        break;
+        case Action::QUITTER:       confirmerChoix(act);                                                                break;
+        case Action::REINITIALISER: redemarrer(plateau, choisirTrouDepart, m, act, pileAnnuler, positionAnterieure);    break;
+        case Action::ANNULER:       annuler(plateau, m, pileAnnuler, positionAnterieure);                               break;
+        case Action::REFAIRE:       refaire();                                                                          break;
     }
     if(positionValide(m.arrivee, plateau))        //Si le déplacement est valide, on fait un cout de la main à la position d'arrivée et on réaffiche la case sur laquelle la position de départ devient celle d'arrivée
     {
@@ -368,7 +373,7 @@ bool positionValide(Position p, Cases plateau)
     return true;
 }
 
-void manipulerBille(Cases plateau, Main& m)
+void manipulerBille(Cases plateau, Main& m, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure)
 {
     if (m.mettreTrouDepart)
     {
@@ -380,7 +385,7 @@ void manipulerBille(Cases plateau, Main& m)
         if (m.enMain)
         {
         m.enMain = false;               //On vient déposer la bille
-        deposerBille(plateau, m);
+        deposerBille(plateau, m, pileAnnuler, positionAnterieure);
         }
         else
         {
@@ -399,7 +404,7 @@ void prendreBille(Cases plateau, Main& m)
     plateau[m.prise.ligne][m.prise.colonne] = VIDE;
 }
 
-void deposerBille(Cases plateau, Main& m)
+void deposerBille(Cases plateau, Main& m, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure)
 {
     if(plateau[m.arrivee.ligne][m.arrivee.colonne] == VIDE && ((abs(m.prise.ligne - m.arrivee.ligne) == 2 && abs(m.prise.colonne - m.arrivee.colonne) == 0) || abs(m.prise.colonne - m.arrivee.colonne) == 2 && abs(m.prise.ligne - m.arrivee.ligne) == 0))
     {
@@ -431,9 +436,17 @@ void deposerBille(Cases plateau, Main& m)
             intermediaire.colonne = m.arrivee.colonne;
         }
 
-        //Puisque le coup va s'effectuer, on prend en note la position de départ, d'arrivée, et celle de la bille intermédiaire
+        gotoxy(pileAnnuler.taille, LIGNE_ANNULER);
+        setcolor(Color::pur);
+        cout << 'O';
+        setcolor(Color::wht);
 
-        
+        //Puisque le coup va s'effectuer, on prend en note la position de départ, d'arrivée, et celle de la bille intermédiaire pour la mettre dans une struct InfoPileSolitaire
+
+            NoeudPileSolitaire* ca = pileAnnuler.dessus;    //Un pointeur temporaire pointe l'élément du dessus de la pile
+            pileAnnuler.dessus = new NoeudPileSolitaire{ m.prise, intermediaire,m.arrivee, ca};    //Une nouvelle struct NoeudPileSolitaire est crée et le pointeur pileAnnuler.dessus pointe cet élément. la nouvelle struct NoeudPileSolitaire
+            pileAnnuler.taille++;
+            delete ca;
 
         plateau[m.arrivee.ligne][m.arrivee.colonne] = BILLE;
         plateau[intermediaire.ligne][intermediaire.colonne] = VIDE;
@@ -452,7 +465,7 @@ void deposerBille(Cases plateau, Main& m)
     }
 }
 
-void annuler()
+void annuler(Cases& plateau, Main& m, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure)
 {
 
 }
@@ -461,7 +474,7 @@ void refaire()
 
 }
 
-void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act)
+void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act, PileSolitaire& pileAnnuler, InfoPileSolitaire& positionAnterieure)
 {
     char c;
     bool choixValide = false;
@@ -482,7 +495,7 @@ void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act)
     if (redemarrer)
     {
     clrscr();
-    demarrer(plateau, choisirTrouDepart, m, act);
+    demarrer(plateau, choisirTrouDepart, m, act, pileAnnuler, positionAnterieure);
     }
     else
     {
