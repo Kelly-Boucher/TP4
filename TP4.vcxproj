@@ -127,11 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="base_solitaire.cpp" />
     <ClCompile Include="cvm_23.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="solitaire.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cvm_23.h" />
+    <ClInclude Include="solitaire.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
