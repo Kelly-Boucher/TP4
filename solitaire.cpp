@@ -175,9 +175,22 @@ void mettreTrouDepart(Action act, Cases& plateau, Main& m, bool& choisirTrouDepa
     while (act != Action::QUITTER && m.mettreTrouDepart)
     {
         act = saisirAction();                   //Saisir l'action que veut faire le joueur
-
+        if (act == Action::MANIPULER)
+        {
+            gotoxy(0, LIGNE_MESSAGE);
+            clreol();
+        }
         miseAJour(act, plateau, m, choisirTrouDepart, tableauPositions, indiceTableau, nbBillesRestantes, nbBillesMAX, pastilleRefaire, pastilleAnnuler);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur
     }
+    plateau[m.arrivee.ligne][m.arrivee.colonne] = VIDE;
+
+    gotoxy(m.arrivee.ligne, m.arrivee.colonne);
+    Case c = plateau[m.arrivee.ligne][m.arrivee.colonne];
+    cout << carte[c];
+
+    m.depart = { 3,3 };
+    m.arrivee = { 3,3 };
+    afficherMain(m);
 }
 
 Action saisirAction()
@@ -356,7 +369,7 @@ void deposerBille(Cases plateau, Main& m, InfoPileSolitaire tableauPositions[35]
         clreol();
         cout << "Nombre de billes restantes : " << nbBillesRestantes;
 
-        //Réinitialiser les valeurs lignes de départ dans le tableau de position à -1 pour avoir une condition qui empêche de faire un Redo sur ces éléments
+        //Réinitialiser les valeurs lignes de départ à - 1, dans le tableau de positions, pour tous les éléments à partie de la position courante jusqu'à la fin du tableau, pour avoir une condition qui empêche de faire un Redo sur ces éléments
         for (size_t i = indiceTableau; i < 35; i++)
         {
             tableauPositions[indiceTableau].depart.ligne = -1;
@@ -368,7 +381,7 @@ void deposerBille(Cases plateau, Main& m, InfoPileSolitaire tableauPositions[35]
         pastilleRefaire = 0;
 
         //Afficher un message si le joueur gagne
-        if (nbBillesRestantes == 0)
+        if (nbBillesRestantes == 1)
         {
             gotoxy(0, LIGNE_MESSAGE);
             clreol();
@@ -389,15 +402,15 @@ void annuler(Cases& plateau, InfoPileSolitaire tableauPositions[35], size_t& ind
 {
     if (indiceTableau > 0)
     {
-    ////Décrémenter l'indice du tableau de 1 pour accéder au coup avant
+    //Décrémenter l'indice du tableau de 1 pour accéder au coup avant
     indiceTableau--;
 
-    ////Changer les cases du tableau pour qu'elles aient la configuration au coup précédent
+    //Changer les cases du tableau pour qu'elles aient la configuration au coup précédent
     plateau[tableauPositions[indiceTableau].depart.ligne][tableauPositions[indiceTableau].depart.colonne] = BILLE;
     plateau[tableauPositions[indiceTableau].retiree.ligne][tableauPositions[indiceTableau].retiree.colonne] = BILLE;
     plateau[tableauPositions[indiceTableau].arrivee.ligne][tableauPositions[indiceTableau].arrivee.colonne] = VIDE;
 
-    ////Afficher les nouvelles cases correctement
+    //Afficher les nouvelles cases correctement
     gotoxy(tableauPositions[indiceTableau].depart.ligne, tableauPositions[indiceTableau].depart.colonne);
     Case depart = plateau[tableauPositions[indiceTableau].depart.ligne][tableauPositions[indiceTableau].depart.colonne];
     cout << carte[depart];
@@ -410,7 +423,7 @@ void annuler(Cases& plateau, InfoPileSolitaire tableauPositions[35], size_t& ind
     Case arrivee = plateau[tableauPositions[indiceTableau].arrivee.ligne][tableauPositions[indiceTableau].arrivee.colonne];
     cout << carte[arrivee];
 
-    //Imprimer une case jaune
+    //Imprimer une pastille jaune
     gotoxy(pastilleRefaire, LIGNE_ANNULER + 1);
     setcolor(Color::yel);
     cout << 'O';
@@ -456,7 +469,7 @@ void refaire(Cases& plateau, InfoPileSolitaire tableauPositions[35], size_t& ind
     Case arrivee = plateau[tableauPositions[indiceTableau].arrivee.ligne][tableauPositions[indiceTableau].arrivee.colonne];
     cout << carte[arrivee];
 
-    //Imprimer une case mauve
+    //Imprimer une pastille mauve
     gotoxy(pastilleAnnuler, LIGNE_ANNULER);
     setcolor(Color::pur);
     cout << 'O';
