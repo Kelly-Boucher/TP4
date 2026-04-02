@@ -74,7 +74,7 @@ struct PileSolitaire
 void demarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act, InfoPileSolitaire tableauPositions[35], size_t& indiceTableau, size_t& nbBillesRestantes, size_t& nbBillesMAX, size_t& pastilleRefaire, size_t& pastilleAnnuler);
 Configuration menuAccueil(size_t& nbBillesRestantes , size_t& nbBillesMAX);
 void initialiserPlateau(Cases plateau, Configuration conf);
-bool afficherPlateau(Cases plateau, Main m, size_t& nbBillesRestantes);
+bool afficherPlateau(Cases plateau, Main& m, size_t& nbBillesRestantes);
 Action saisirAction();
 void afficherMain(Main& m);
 void mettreTrouDepart(Action act, Cases& plateau, Main& m, bool& choisirTrouDepart, InfoPileSolitaire tableauPositions[35], size_t& indiceTableau, size_t& nbBillesRestantes, size_t& nbBillesMAX, size_t& pastilleRefaire, size_t& pastilleAnnuler);
@@ -89,3 +89,4 @@ void refaire(Cases& plateau, InfoPileSolitaire tableauPositions[35], size_t& ind
 void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act, InfoPileSolitaire tableauPositions[35], size_t& indiceTableau, size_t& nbBillesRestantes, size_t& nbBillesMAX, size_t& pastilleRefaire, size_t& pastilleAnnuler);
 void confirmerChoix(Action& act);
 void quitter();
+void coupPossible(Cases& plateau);

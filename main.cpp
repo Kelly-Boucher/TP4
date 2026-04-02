@@ -30,6 +30,8 @@ while (act != Action::QUITTER)
     act = saisirAction();                   //Saisir l'action que veut faire le joueur
 
     miseAJour(act, plateau, m, choisirTrouDepart, tableauPositions, indiceTableau, nbBillesRestantes, nbBillesMAX, pastilleRefaire, pastilleAnnuler);             //Mettre à jour la coordonnée position arrivée selon le déplacement effectuer par le joueur
+    if(!m.enMain)
+    coupPossible(plateau);
 }
 
 quitter();

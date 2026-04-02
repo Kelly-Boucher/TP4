@@ -128,7 +128,7 @@ void initialiserPlateau(Cases plateau, Configuration conf)
     }
 }
 
-bool afficherPlateau(Cases plateau, Main m, size_t& nbBillesRestantes)
+bool afficherPlateau(Cases plateau, Main& m, size_t& nbBillesRestantes)
 {
     for (size_t lig = 0; lig < HAUTEUR; ++lig)
     {
@@ -138,6 +138,9 @@ bool afficherPlateau(Cases plateau, Main m, size_t& nbBillesRestantes)
         }
         cout << endl;
     }
+
+    m.depart = { 3, 3 };
+    m.arrivee = { 3, 3 };
 
     gotoxy(0, LIGNE_CONTROLES);
     cout << "Gauche: a | Haut: w | Droite: d | Bas: s | Reinitialiser: r | Quitter: q | Annuler: u | Refaire: y";
@@ -230,15 +233,15 @@ void miseAJour(Action& act, Cases& plateau, Main& m, bool& choisirTrouDepart, In
 {
     switch (act)
     {
-    case Action::HAUT:          m.arrivee.colonne--;                                                                                                break;
-    case Action::BAS:           m.arrivee.colonne++;                                                                                                break;
-    case Action::DROITE:        m.arrivee.ligne++;                                                                                                  break;
-    case Action::GAUCHE:        m.arrivee.ligne--;                                                                                                  break;
-    case Action::MANIPULER:     manipulerBille(plateau, m, tableauPositions, indiceTableau, nbBillesRestantes, pastilleRefaire, pastilleAnnuler);                                     break;
-    case Action::QUITTER:       confirmerChoix(act);                                                                                                break;
-    case Action::REINITIALISER: redemarrer(plateau, choisirTrouDepart, m, act, tableauPositions, indiceTableau, nbBillesRestantes, nbBillesMAX, pastilleRefaire, pastilleAnnuler);                 break;
-    case Action::ANNULER:       annuler(plateau, tableauPositions, indiceTableau, nbBillesRestantes, nbBillesMAX, pastilleRefaire, pastilleAnnuler);                                                                  break;
-    case Action::REFAIRE:       refaire(plateau, tableauPositions, indiceTableau, nbBillesRestantes, pastilleRefaire, pastilleAnnuler);                                                                  break;
+    case Action::HAUT:          m.arrivee.colonne--;                                                                                                                                break;
+    case Action::BAS:           m.arrivee.colonne++;                                                                                                                                break;
+    case Action::DROITE:        m.arrivee.ligne++;                                                                                                                                  break;
+    case Action::GAUCHE:        m.arrivee.ligne--;                                                                                                                                  break;
+    case Action::MANIPULER:     manipulerBille(plateau, m, tableauPositions, indiceTableau, nbBillesRestantes, pastilleRefaire, pastilleAnnuler);                                   break;
+    case Action::QUITTER:       confirmerChoix(act);                                                                                                                                break;
+    case Action::REINITIALISER: redemarrer(plateau, choisirTrouDepart, m, act, tableauPositions, indiceTableau, nbBillesRestantes, nbBillesMAX, pastilleRefaire, pastilleAnnuler);  break;
+    case Action::ANNULER:       annuler(plateau, tableauPositions, indiceTableau, nbBillesRestantes, nbBillesMAX, pastilleRefaire, pastilleAnnuler);                                break;
+    case Action::REFAIRE:       refaire(plateau, tableauPositions, indiceTableau, nbBillesRestantes, pastilleRefaire, pastilleAnnuler);                                             break;
     }
     if (positionValide(m.arrivee, plateau))        //Si le déplacement est valide, on fait un cout de la main à la position d'arrivée et on réaffiche la case sur laquelle la position de départ devient celle d'arrivée
     {
@@ -350,6 +353,7 @@ void deposerBille(Cases plateau, Main& m, InfoPileSolitaire tableauPositions[35]
         //Décrémenter le nombre de billes restantes
         nbBillesRestantes--;
         gotoxy(15, 0);
+        clreol();
         cout << "Nombre de billes restantes : " << nbBillesRestantes;
 
         //Réinitialiser les valeurs lignes de départ dans le tableau de position à -1 pour avoir une condition qui empêche de faire un Redo sur ces éléments
@@ -424,6 +428,7 @@ void annuler(Cases& plateau, InfoPileSolitaire tableauPositions[35], size_t& ind
     {
         nbBillesRestantes++;
         gotoxy(15, 0);
+        clreol();
         cout << "Nombre de billes restantes : " << nbBillesRestantes;
     }
     }
@@ -433,7 +438,7 @@ void refaire(Cases& plateau, InfoPileSolitaire tableauPositions[35], size_t& ind
 {
     if(tableauPositions[indiceTableau].depart.ligne != -1 && indiceTableau < 35)
     {
-    //Changer les cases du tableau pour qu'elles aient la configuration au coup suivant
+    //Changer les cases du tableau pour qu'elles aient la configuration du coup suivant
     plateau[tableauPositions[indiceTableau].depart.ligne][tableauPositions[indiceTableau].depart.colonne] = VIDE;
     plateau[tableauPositions[indiceTableau].retiree.ligne][tableauPositions[indiceTableau].retiree.colonne] = VIDE;
     plateau[tableauPositions[indiceTableau].arrivee.ligne][tableauPositions[indiceTableau].arrivee.colonne] = BILLE;
@@ -451,12 +456,14 @@ void refaire(Cases& plateau, InfoPileSolitaire tableauPositions[35], size_t& ind
     Case arrivee = plateau[tableauPositions[indiceTableau].arrivee.ligne][tableauPositions[indiceTableau].arrivee.colonne];
     cout << carte[arrivee];
 
+    //Imprimer une case mauve
     gotoxy(pastilleAnnuler, LIGNE_ANNULER);
     setcolor(Color::pur);
     cout << 'O';
     setcolor(Color::wht);
     pastilleAnnuler++;
 
+    //Effacer la dernière pastille refaire
     if (pastilleRefaire > 0)
     {
     pastilleRefaire--;
@@ -471,6 +478,7 @@ void refaire(Cases& plateau, InfoPileSolitaire tableauPositions[35], size_t& ind
     if(nbBillesRestantes)
     nbBillesRestantes--;
     gotoxy(15, 0);
+    clreol();
     cout << "Nombre de billes restantes : " << nbBillesRestantes;
     }
 }
@@ -483,7 +491,7 @@ void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act, I
     bool redemarrer;
     gotoxy(0, LIGNE_MESSAGE);
     clreol();
-    cout << "Voulez-vous vraiment redemarrer ? (O/N)";
+    cout << "Voulez-vous redemarrer une partie ? (O/N)";
     do
     {
         c = _getch();
@@ -504,6 +512,8 @@ void redemarrer(Cases& plateau, bool& choisirTrouDepart, Main& m, Action& act, I
         gotoxy(0, LIGNE_MESSAGE);
         clreol();
     }
+    pastilleRefaire = 0;
+    pastilleAnnuler = 0;
 }
 
 void confirmerChoix(Action& act)
@@ -537,4 +547,42 @@ void quitter()
     clrscr();
     cout << "Au revoir!";
     _getch();
+}
+
+void coupPossible(Cases& plateau)
+{
+    int coupPossible = 0;
+
+    //Itérer chaque case pour voir s'il reste un coup possible
+    for (size_t lig = 0; lig < HAUTEUR; ++lig)
+    {
+        for (size_t col = 0; col < LARGEUR; ++col)
+        {
+            if (plateau[lig][col] == BILLE)
+            {
+                if (plateau[lig - 1][col] == BILLE && plateau[lig - 2][col] == VIDE)
+                {
+                    coupPossible++;
+                }
+                else if (plateau[lig][col - 1] == BILLE && plateau[lig][col - 2] == VIDE)
+                {
+                    coupPossible++;
+                }
+                else if (plateau[lig + 1][col] == BILLE && plateau[lig + 2][col] == VIDE)
+                {
+                    coupPossible++;
+                }
+                else if (plateau[lig][col + 1] == BILLE && plateau[lig][col + 2] == VIDE)
+                {
+                    coupPossible++;
+                }
+            }
+        }
+    }
+    if (coupPossible == 0)
+    {
+        gotoxy(0, LIGNE_MESSAGE);
+        clreol();
+        cout << "Il n'y a plus de coup possible!";
+    }
 }
